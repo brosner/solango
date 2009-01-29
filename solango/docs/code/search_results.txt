@@ -1,0 +1,80 @@
+.. _code-search_results:
+
+==============
+Search Results
+==============
+
+There are two flavors of Search Results: `SelectResults` and `UpdateResults`.
+
+`UpdateResults`
+===============
+Returned by the Add, Delete and Commit functions.
+
+Attrs
+-----
+
+* `header`
+
+  * Dictionary of the header that is retrieved from Solr. Example::
+
+        {u'QTime': 17,
+         u'params': {u'facet': u'true',
+                     u'facet.field': [u'model', u'author'],
+                     u'hl': u'true',
+                     u'hl.fl': u'text',
+                     u'hl.fragsize': u'200',
+                     u'q': u'django',
+                     },
+         u'status': 0}
+        
+* `status`
+
+  * Returns the Solr response status code for this Results instance.
+
+* `success`
+
+  * Returns true if this Results object indicates status of 0.
+
+* `time`
+
+  * Returns the server request time, in millis, for this Results instance.
+
+* `url`
+       
+  * Based on the header params it returns the Solr GET string
+  
+
+`SelectResults`
+===============
+When you call `connection.select()` It returns back an instance of `SearchResults` which
+has all the attributes of `UpdateResults` and the following.
+
+Attrs
+-----
+* `documents`
+
+  * List of the documents returned
+
+* `facets`
+
+  * List of the facets returned
+
+* `highlighting`
+
+  * Dictionary of highlighting results. Where the key is the instance key and the 
+    value is a dictionary of fields. Example::
+ 
+     {u'coltrane__entry__1': {u'text': [u'Assembling <em>Django</em> Applications into Web 2.0 Solutions ']},
+     u'coltrane__entry__2': {u'text': [u'Enterprise <em>Django</em>: <em>Django</em> on Jython']},
+     u'coltrane__entry__4': {u'text': [u'Use <em>Django</em> to assemble instead of Drupal.']},
+  
+* `rows`
+
+  * Number of documents returned
+
+* `start`
+
+  * Start index for documents returned
+
+
+

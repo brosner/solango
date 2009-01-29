@@ -1,0 +1,41 @@
+.. _code-highlighting:
+
+============
+Highlighting
+============
+
+Solr allows you to highlight text that matches the query the user requested. By default this 
+feature is enabled via the initial settings::
+
+    #Default Highlighting Settings. See http://wiki.apache.org/solr/HighlightingParameters
+    # for more options
+    SEARCH_HL_PARAMS = [
+        ("hl", "true"),      # basic highlighting
+        ("hl.fl", "text"),   # What field to highlight
+    ]
+    
+See the :ref:`query <code-query>` documentation for more information.
+
+When the results are passed back to the :ref:`Search Results <code-search_results>` it parses the 
+highlighting xml and appends it to the document and the field. Here is how to access it::
+
+    >>> from solango import connection
+    
+    # get a document
+    >>> document = connection.select(q='django').documents[0]
+    
+    # Will join all the highlight values and put them on the highlight
+    # attr on the document
+    >>> document.highlight
+    u'Assembling <em>Django</em> Applications into Web 2.0 Solutions'
+    
+    # If you want the highlighting for an individual field you can
+    # access that too.
+    >>> document.fields['text'].highlight
+    u'Assembling <em>Django</em> Applications into Web 2.0 Solutions'
+    
+    # We found it nice if there was no highlight value returned in
+    # the results to pass a truncated value instead
+    >>> document.fields['text'].highlighting()
+    u'Sean Creeley Assembling Django Applications into Web 2.0 Solutions  ####What is Django?\nDjango'
+    

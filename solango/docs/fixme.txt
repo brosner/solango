@@ -1,0 +1,23 @@
+.. _fixme:
+
+==============
+Points of Pain
+==============
+Just a running list of things that suck. Feel free to add your own.
+
+* settings. Sucks that you have to manually copy all the settings from inital_settings.py into the 
+  root settings file. Has to be an easier way. 
+
+* more robust import process. Right now it looks like this::
+    
+    for a in settings.INSTALLED_APPS:
+    try:
+        """
+        This will call all the fun things in the search documents
+        """
+        module = __import__(a + '.search', {}, {}, [''])
+    except ImportError, e:
+        pass
+        
+   That sucks. Look at: django.contrib.admin.sites.register
+

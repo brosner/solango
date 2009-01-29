@@ -1,0 +1,71 @@
+{% extends "solango/base.html" %}
+
+
+{% block left_menu %}
+<div class="facets">
+<ul class="linkType">
+ <li><a href="?">See All Results</a></li>
+{% for link in facets %}
+    
+    {% if link.href %}
+        <li><a class="Facet{{ link.level }} {% if link.active %}active{% endif %}"
+            href="{{ link.href }}">{{ link.anchor }}</a> {% if link.count %} ({{ link.count }}) {% endif %}</li>
+    {% else %}
+        </ul>
+        <ul class="linkType">
+        <li><h3>{{ link }}</h3></li>
+    {% endif %}
+    
+{% endfor %}
+</ul>
+{% if sort_links %}
+<h3>Sort</h3>
+<ul>
+{% for link in sort_links %}
+    {% if link.anchor %}
+        <li><a href="{{ link.href }}">{{ link.anchor }}</a></li>
+    {% else %}
+        <li>{{ link }}</li>
+    {% endif %}
+{% endfor %}
+</ul>
+{% endif %}
+</div>
+{% endblock%}
+
+{% block content %}
+	<form action="" method="GET" onsubmit="return doSearch(this);">
+		<input name='q' type="text" value="{{q}}">
+		<input type="submit">
+	</form>
+	
+	<div>
+	{% if q and not paginator.results.documents %}
+	No results found for <em>{{q}}</em>. Please modify your search.
+	{% endif %}
+	
+	{% for doc in paginator.results.documents %}
+		{{doc.render_html|safe}}
+	{% endfor %}
+	</div>
+	
+    <div class="pagination">
+	{% if paginator.has_previous %}
+	     <a href="{{ paginator.previous_link }}">&lt;&lt;</a> | 
+	{% endif %}
+	{% for link in paginator.links %}
+	    {% if link.href %}
+	        <a href="{{ link.href }}">{{ link.anchor }}</a> |
+	    {% else %}
+	        {{ link }} |
+	    {% endif %}
+	{% endfor %}
+	{% if paginator.has_next %}
+	     <a href="{{ paginator.next_link }}">&gt;&gt;</a>
+	{% endif %}
+	</div>
+	
+	<script type='text/javascript'>
+	function doSearch(form){var url="/search/"+form.elements[0].value+"/";	window.location=url;return false;}
+	</script>
+{% endblock %}

@@ -1,0 +1,17 @@
+.. _contents:
+
+========
+Contents
+========
+Navigate around the Django Solr Documentation
+
+.. toctree::
+    :maxdepth: 2
+    
+    overview
+    install
+    tutorial
+    
+    code/index
+    
+    fixme

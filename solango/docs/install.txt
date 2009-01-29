@@ -1,0 +1,43 @@
+.. _install:
+
+============
+Installation
+============
+
+Source
+======
+There are no stable releases at this point, so just grab the source from Google code::
+
+	svn checkout https://django-solr-search.googlecode.com/svn/trunk/ django-solr-search 
+
+This includes the example project and docs, if you just want the `solango` module use:: 
+
+	svn checkout https://django-solr-search.googlecode.com/svn/trunk/solango solango
+	
+As with any module make sure you place it somewhere on your python path or in your app. 
+
+Solango
+=======
+Why not name it search or solr or input your suggestion dumbass? Search is out because of 
+the way that `solango` imports the search documents and Solr didn't seem right. Djolr was 
+also on the list, but that didn't sound as cool. So, suck it up and embrace `solango`.
+
+Settings
+========
+You will need to add `solango` to your installed apps.::
+	
+    INSTALLED_APPS = {
+	    ...
+	    'solango',
+	    ...
+    }
+
+`solango` comes with a few default settings that it needs to run. Copy all the contents of 
+`solango.initial_settings` into the root project `settings.py` file. More information is a
+available in the :ref:`settings <code-settings>` documentation.
+
+ 
+Solr
+====
+The backbone. Download it from here: http://www.apache.org/dyn/closer.cgi/lucene/solr/. That's all you really need right now.
+The :ref:`tutorial <tutorial>` will get it up and running. 

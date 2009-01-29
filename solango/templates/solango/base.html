@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	{% block extra-head %}{% endblock %}
+	<style>
+	.facets {
+	    float:left;
+	    width: 180px;
+	    margin:12px 0px;
+	}
+	.facets ul.linkType {
+	    margin:0em 0em 1em; padding:0;
+	}
+	.facets ul.linkType li {
+	    margin:0 12px; padding:0;
+	}
+	.facets ul.linkType li a {
+	    color: #000;                    
+	    margin:0; padding:0 0 0 0.5em;
+	}
+	.facets ul.linkType li a.active,
+	.facets ul.linkType li a.active:hover
+	{
+	    color:#333;
+	    font-weight:bold;
+	    cursor:default;
+	 }
+	.facets ul.linkType li a.Facet0 { 
+	    padding:0 0 0 0.5em; 
+	 } 
+	.facets ul.linkType li a.Facet1 { 
+	    padding:0 0 0 1.5em;
+	} 
+	.facets ul.linkType li a.Facet2 { 
+	    padding:0 0 0 2.5em;
+	} 
+	.facets h3 { margin:0; padding:0 0 3px; font-weight:bold; font-size:13px; color:#999;}
+	</style>
+	
+	
+</head>
+
+<body>
+	<div id="body" class="container" style="width:900px; margin:0pt auto;">
+		<div id="header" style="border : 1px solid #ccc; height:100px">
+		{% block header%}
+			<a href="/"><h1> Solango </h1></a>
+		{% endblock %}
+		</div>
+		<div>
+			<h2>{%block title%} {%endblock%}</h2>	
+		</div>
+		<div>
+			<div style="width:200px; float:left">
+			{% block left_menu %}
+			
+			{% endblock %}
+			</div>
+			<div id="content" style="float:right; width:700px;">
+			{% block content %}
+			
+			{% endblock %}
+			</div>
+		</div>
+		<div id="footer" style="clear:both; text-align:center;">
+			{% block footer %}
+			<a href="/about/">About</a> | <a href="/contact/">Contact</a>
+			{% endblock %}
+		</div>
+	</div>
+</body>
+</html>

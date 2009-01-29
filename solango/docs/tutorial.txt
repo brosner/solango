@@ -1,0 +1,376 @@
+.. _tutorial:
+
+========
+Tutorial
+========
+
+Alright you installed `solango`, now what? This will walk you through setting up Solr search. I'm
+going to just document how I set it up for my blog and we will go from there.
+
+Get `Solango`
+=============
+I set up solango as an svn external. It looks somewhat like this::
+
+    cd /path/to/project/trunk
+    svn propedit svn:externals .
+    # add this line
+    solango http://django-solr-search.googlecode.com/svn/trunk/solango
+    # update
+    svn up
+
+Add `solango` to your installed apps::
+    
+    INSTALLED_APPS = {
+        ...
+        'solango',
+        ...
+    }
+
+`solango` comes with a few default settings that it needs to run. Copy all the contents of 
+`solango.initial_settings` into the root project `settings.py` file.
+
+Quickly make sure that you have the package installed correctly::
+
+    ./manage.py shell
+    >>> import solango
+    #See if solango can find a Solr instance. You should get false at this point
+    >>> solango.connection.is_available()
+    False
+    
+If you get an error saying::
+
+    AttributeError: 'Settings' object has no attribute 'SEARCH_UPDATE_URL'
+ 
+You messed something up.
+
+Create your Search Documents
+============================
+This is an iterative process. You will not get it perfect the first time, so don't try. Using 
+the `Example` in the Solr distro we can blow it up and start over again.
+
+In each module that you wish to search create a `search.py` file. This is what solango looks for
+when it builds the search registry similar to how the admin works. Once you have that create a 
+`SearchDocument` for the model. Here's what my model looks like:: 
+
+    class Entry(models.Model):
+    
+        LIVE_STATUS = 1
+        DRAFT_STATUS = 2
+        HIDDEN_STATUS = 3
+        STATUS_CHOICES = (
+            (LIVE_STATUS, 'Live'),
+            (DRAFT_STATUS, 'Draft'),
+            (HIDDEN_STATUS, 'Hidden'),
+            )
+        
+        # Metadata.
+        author = models.ForeignKey(User)
+        enable_comments = models.BooleanField(default=True)
+        featured = models.BooleanField(default=False)
+        pub_date = models.DateTimeField(u'Date posted', default=datetime.datetime.today)
+        slug = models.SlugField(unique_for_date='pub_date',
+                                help_text=u'Used in the URL of the entry. Must be unique for the publication date of the entry.')
+        status = models.IntegerField(choices=STATUS_CHOICES, default=LIVE_STATUS,
+                                     help_text=u'Only entries with "live" status will be displayed publicly.')
+        title = models.CharField(max_length=250)
+        
+        # The actual entry bits.
+        body = models.TextField()
+        body_html = models.TextField(editable=False, blank=True)
+        excerpt = models.TextField(blank=True, null=True)
+        excerpt_html = models.TextField(blank=True, null=True, editable=False)
+
+Wow that looks familiar? Well it's from `Coltrane <http://code.google.com/p/coltrane-blog>`_. 
+Obviously I don't want to search on all these fields so I'm going to pick and choose what I want.
+For this exercise I'm only going to search `author`, `pub_date`, `title` and `body`. I don't
+care so much about the html and the `excerpt` is just part of the the body. The document looks
+like this::
+    
+    import solango
+    from coltrane.models import Entry
+    
+    class EntryDocument(solango.SearchDocument):
+        author = solango.fields.CharField()
+        date = solango.fields.DateField()
+        title = solango.fields.CharField(copy=True)
+        content = solango.fields.TextField(copy=True)
+        
+        def transform_author(self, instance):
+            return instance.author.get_full_name()
+        
+        def transform_date(self, instance):
+            return instance.pub_date
+        
+        def transform_content(self, instance):
+            return instance.body
+
+    solango.register(Entry, EntryDocument)
+
+Notice we didn't add an id, url or model. This is taken care of by the base Search Document.
+That seems like a lot of code, but I hope I'm going to show you why we need it. Lets take a step back.
+Our end goal is to be able to facet on author and date and we want to search on title and content. To 
+accomplish this we need to get the full name of the author and make pub_date a little more generic. By
+default to get the value of a field the search document will try two things:
+
+1. Look for a `transform_%s` of the field name, i.e transform_author
+2. Attribute of the model with the Field Name
+
+The transform function is given an instance of the model so you can retrieve model attributes from it. 
+To take author as an example the value for that field will be the full name of the author. Where the title doesn't need
+a transform function because it's already an attribute of the instance.
+
+`solango.register` takes an instance of the Model and associates it with the document.  
+
+Solr Setup
+==========
+We haven't talked about Solr yet, but now we are going to need to get an instance for this to work. Download
+a Solr instance from `here <http://www.apache.org/dyn/closer.cgi/lucene/solr/>`_ and unpack it. In the root 
+directory there is an example project where we will be doing most of our development.
+
+Solr Schema.xml
+===============
+`solango` has a nice little feature that allows you to generate a schema.xml document based on your search
+documents. It's a very handy little feature for development. Once you move to a production environment
+you are going to have to take a harder look at the schema.xml, but for now, it works. Run::
+
+    ./manage.py solr --help
+    #solango schema options
+    --fields              Prints out the fields the schema.xml will create
+    --flush               Will remove the data directory from Solr.
+    --reindex             Will reindex Solr from the registry.
+    --schema              Will create the schema.xml in SOLR_SCHEMA_PATH or in the --path.
+    --path=SCHEMA_PATH    Tells Solango where to create config file.
+    
+Try `./manange.py solr --fields`. It prints out the fields and the copyFields. So for our example it would be::
+
+    ########## FIELDS ###########
+
+    <field name="author" type="string" indexed="true" stored="true" omitNorms="false" required="false" multiValued="false"/>
+    <field name="url" type="string" indexed="true" stored="true" omitNorms="false" required="false" multiValued="false"/>
+    <field name="text" type="text" indexed="true" stored="true" omitNorms="false" required="false" multiValued="true"/>
+    <field name="title" type="string" indexed="true" stored="true" omitNorms="false" required="false" multiValued="false"/>
+    <field name="site_id" type="integer" indexed="true" stored="true" omitNorms="false" required="true" multiValued="false"/>
+    <field name="content" type="text" indexed="true" stored="true" omitNorms="false" required="false" multiValued="false"/>
+    <field name="date" type="date" indexed="true" stored="true" omitNorms="false" required="false" multiValued="false"/>
+    <field name="model" type="string" indexed="true" stored="true" omitNorms="false" required="true" multiValued="false"/>
+    <field name="id" type="string" indexed="true" stored="true" omitNorms="false" required="true" multiValued="false"/>
+    
+    ######## COPY FIELDS ########
+    
+    <copyField source="title" dest="text"/>
+    <copyField source="content" dest="text"/>
+
+So this is what `solango` is going to fill into the `schema.xml` template in the templates directory. By specifying `--full`
+and `--path` we can put the file in our Solr instance. Run::
+
+    ./manage.py solr --schema --path=/path/to/apache-solr-1.3.0/example/solr/conf/
+    
+Now we have a solid little Solr instance to test. Go into the Solr example and start Solr::
+    
+    cd /path/to/apache-solr-1.3.0/example
+    java -jar start.jar
+
+Two ways to test it's up. View it in the browser at `http://localhost:8983/solr/admin/ <http://localhost:8983/solr/admin/>`_
+or use `solango`::
+
+    ./manage.py shell
+    >>> import solango
+    >>> solango.connection.is_available()
+    True
+
+Lets go back and change some settings so that we can make it easier to develop with Solr and Django commands. 
+Find the Solr settings and change them to::
+    
+    SOLR_ROOT = '/path/to/apache-solr-1.3.0/example/solr/'
+    SOLR_SCHEMA_PATH = SOLR_ROOT + 'conf/schema.xml'
+    SOLR_DATA_DIR = SOLR_ROOT + 'data'
+
+Now we can run:
+
+* `./manage.py solr --schema` to update the schema.xml
+* `./manage.py solr --flush` to delete the data directory in the example project
+* `./manage.py solr --reindex` to add all objects with a Search Document to Solr
+
+To add all my entries to Solr I issued `./manage.py solr --reindex`. Now that I have a searchable Solr 
+instance let's try and return some data::
+
+    >>> from solango import connection
+    >>> results = connection.select(q='django')
+    
+    # See if the query was successful
+    >>> results.success
+    True
+    
+    # Number of results
+    >>> results.count
+    3
+    
+    # Get all the documents
+    >>> results.documents
+    [<coltrane.search.EntryDocument object at 0x8a1172c>,
+     <coltrane.search.EntryDocument object at 0x8b75e4c>,
+     <coltrane.search.EntryDocument object at 0x8b75fcc>]
+    
+    # Get the field values for a document
+    >>> results.documents[0].fields
+    {'id': <solango.solr.fields.PrimaryKeyField object at 0x8b75e6c>, 'model': <solango.solr.fields.ModelField object at 0x8b75e8c>, ...}
+    
+    # Get Facet Fields
+    >>> results.facets
+    [<solango.solr.facet.Facet object at 0x8a7808c>]
+    
+    # Get Highlighting
+    >>> results.highlighting
+    {u'coltrane__entry__1': {u'text': [u'Assembling <em>Django</em> Applications into Web 2.0 Solutions ']},
+     u'coltrane__entry__2': {u'text': [u'Enterprise <em>Django</em>: <em>Django</em> on Jython']},
+     u'coltrane__entry__4': {u'text': [u'Use <em>Django</em> to assemble instead of Drupal.']},
+    
+Great that worked. Now we can set up the search interface. Edit the root url conf and add::
+    
+    (r'^search/', include('solango.urls')),
+
+If you start the development server and go to `/search/` you will see a really ugly page. I mean really ugly, but
+it will show you some functionality. Search for something and you will see a couple of things.
+
+* You are redirected to `/search/(search term)/`. This makes it easier to handle the get params. Personally it's cleaner too.
+* You should see the faceting on the left.
+* Your search term will highlighted in each result by an <em> tag.
+* Your search should be paginated.
+
+Pagination
+==========
+The SearchPaginator is more like a Page in Django. It helps with search pagination and maintaining state
+Few Notes. To keep track of the request params the SearchPaginator has a few extra params than the normal Page. 
+    
+* next_link
+
+  * If paginator.has_next() than use paginator.next_link to keep state
+
+* previous_link
+ 
+  * If paginator.has_previous() than use paginator.previous_link to keep state
+
+* results
+
+  * An instance of SelectResults
+
+Template use::
+
+    {% if paginator.has_previous %}
+        <a href="{{ paginator.previous_link }}">&lt;&lt;</a> | 
+    {% endif %}
+    {% for link in paginator.links %}
+        {% if link.href %}
+            <a href="{{ link.href }}">{{ link.anchor }}</a> |
+        {% else %}
+            {{ link }} |
+        {% endif %}
+    {% endfor %}
+    {% if paginator.has_next %}
+        <a href="{{ paginator.next_link }}">&gt;&gt;</a>
+    {% endif %}
+
+
+Facet
+=====
+Let's add another facet field to show how that works. Currently our settings look like this::
+
+    ### Default Facet Settings
+    SEARCH_FACET_PARAMS = [
+        ("facet", "true"),             # basic faceting
+        ("facet.field", "model"),      # on type
+    ]
+
+By setting facet to `true` we tell Solr we are going to facet and `facet.field` tells solr what field to facet on. 
+By adding another `facet.field` Solr will facet on that field as well::
+
+    SEARCH_FACET_PARAMS = [
+        ("facet", "true"),             # basic faceting
+        ("facet.field", "model"),      # on type
+        ("facet.field", "author"),     # on author
+    ]
+    
+See the :ref:`Facet: <code-facet>` reference material for more information of param options. The pretty links on the 
+left are controled by the `get_facets_links` function in the view and the styles in `solango/base.html`. Look
+at those for more information.
+
+
+Highlight
+=========
+By default `solango` will highlight on the `text` field. Those settings look like this::
+
+    SEARCH_HL_PARAMS = [
+        ("hl", "true"),      # basic highlighting
+        ("hl.fl", "text"),   # What field to highlight
+    ]
+
+`hl.fl` acts like `facet.field` in that it will highlight on another filed if you add it.
+See the :ref:`Highlighting: <code-highlighting>` reference material for more information of parem options.
+
+
+Templating
+==========
+So now that you have a the default `solango` instance running let's customize it a bit. Each document
+allows you to specify how you want it to be rendered. The document has a method `render_html` the takes
+the template specified in the `Media` class. So let's add a template to the `EntryDocument`.::
+
+    class EntryDocument(solango.SearchDocument):
+        ... Fields ...
+        
+        class Media:
+            template = "coltrane/entry_document.html"
+        
+        ... Transforms ...
+
+    solango.register(Entry, EntryDocument)
+    
+That template will looks something like this::
+
+    <div class="searchdocument">
+    <h3>Entry: <a href="{{document.fields.url.value }}" >{{ document.fields.title.value }}</a> </h3>
+    <p>
+    {{ document.highlight|safe }}
+    </p>
+    <ul class="sublinks">
+        <li>at {{ document.fields.date.value|date:"N j Y" }}</li>
+        <li class="last"><a href="{{document.fields.url.value }}">permalink</a></li>
+    </ul>
+    </div>
+
+Then is the `search.html` template we iterate over the documents calling `render_html` like so::
+
+    {% for doc in paginator.results.documents %}
+        {{doc.render_html|safe}}
+    {% endfor %}
+    
+That might have been a lot, but I hope you get the idea.
+
+Sorting
+=======
+Last thing we are going to cover is sorting. By default Solr searches by relevance, but wouldn't it be nice if we 
+could use other fields, like `date`? To do this modify the SEARCH_SORT_PARAMS::
+
+    SEARCH_SORT_PARAMS = {
+            "score desc": "Relevance",
+            "date desc" : "Date" # Added date
+    }
+
+Sorting works very similar to Faceting. The templateing looks like this::
+
+    {% if sort_links %}
+    <h3>Sort</h3>
+    <ul>
+    {% for link in sort_links %}
+        {% if link.anchor %}
+            <li><a href="{{ link.href }}">{{ link.anchor }}</a></li>
+        {% else %}
+            <li>{{ link }}</li>
+        {% endif %}
+    {% endfor %}
+    </ul>
+    {% endif %}
+
+And that's it. Enjoy. 
+
+
+

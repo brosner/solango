@@ -1,0 +1,69 @@
+.. _code-facet:
+
+=====
+Facet
+=====
+
+Facets are fields upon which Solr may group search results (analogous to a
+SQL "GROUP BY" clause).  Faceting shows users the results of Solr's
+faceting collation in conjunction with a tree-merge strategy implemented
+in this class. 
+
+If you have a tree structure, like a Category, Facet will try
+to represent the tree in the Facet results. **This Feature is not fully tested**
+
+The Facet Object: 
+
+    Iterate the provided DOM Node, parsing the facet name and any child
+    value counts.  Facet values are additionally merged into a tree
+    structure based on common name prefixes, and then flattened out again.
+    This allows for parent-child relationships and nested value counts.
+    See merge_values.
+    
+    Parses the facet counts into this Result's facets list.
+    
+    Takes a parsed xml document.
+
+
+Facets are passed back as part of the search results. Dig into the code
+if you want to see how they work, otherwise here is how to make use of them::
+
+    >>> from solango import connection
+    >>> results = connection.select(q='django')
+    
+    # results.facets is a list of Facet instances
+    >>> results.facets
+    [<solango.solr.facet.Facet object at 0x8a753cc>,
+    <solango.solr.facet.Facet object at 0x8a7550c>]
+    
+    # Each Facet has a list of values
+    >>> facet = results.facets[0]
+    >>> facet.values
+    [<solango.solr.facet.FacetValue object at 0x8a7564c>,
+    <solango.solr.facet.FacetValue object at 0x8a7566c>]
+    
+    # Each value has a name, value and count. Count is the number of
+    # documents returned under that facet
+    >>> value = facet.values[0]
+    >>> value.name
+    u'Entry'
+    >>> value.value
+    u'coltrane__entry'
+    >>> value.count
+    7
+    
+    We create the tree structure based using `get_facet_links` in the
+    in the `utils`. But if you are looking for a dict you can use this::
+    
+    >>> facet_dict = {}
+    >>> for facet in results.facets:
+    >>>     facet_dict[facet.name] = []
+    >>>     for value in facet.values:
+    >>>         facet_dict[facet.name].append({'name':value.name, 'value':value.value, 'count':value.count})
+    >>> facet_dict
+    
+    {u'author': [{'count': 7, 'name': u'Sean Creeley', 'value': u'Sean Creeley'}],
+    u'model': [{'count': 7, 'name': u'Entry', 'value': u'coltrane__entry'},
+            {'count': 0, 'name': u'Link', 'value': u'coltrane__link'}]
+    
+    

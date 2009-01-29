@@ -1,0 +1,177 @@
+.. _code-search_document:
+
+===============
+Search Document
+===============
+
+This document covers the basics of writing a Search Document. It's the central config point for
+creating a Solr schema, transforming documents and returning results.
+
+Quick Example
+=============
+
+Here's an example a `search.py` from a simple blog:: 
+    
+    from example.models import Post
+    import solango
+       
+    class PostDocument(solango.SearchDocument):
+        title    = solango.fields.TextField(copy=True)
+        pub_date = solango.fields.DateField(copy=True)
+        content  = solango.fields.TextField(copy=True)
+        
+                
+        #Overrides the default transform
+        def transform_content(self, instance):
+            return instance.body
+        
+    solango.register(Post, PostDocument)
+
+This allows `solango` to register Document with the service. 
+    
+Why a Document?
+===============
+This may seem rather redundant. I mean you already have to build the model, why do I have to do the 
+same thing over again? Yeah, agreed, but without this, you can't have the level of control that you
+will need to facet. `pub_date` is a great example. Every model usually has a date associated with it,
+but they are all named differently. `pub_date`, `date`, `submit_date`, et al. In order to have one date
+field `date` we allow a transform so all those dates can work through the same facet.
+
+Default `SearchDocument`
+========================
+The default search document looks like this::
+
+    class SearchDocument(BaseSearchDocument):
+        id      = search_fields.PrimaryKeyField()
+        model   = search_fields.ModelField()
+        site_id = search_fields.SiteField()
+        url     = search_fields.UrlField()
+        text    = search_fields.TextField(multi_valued=True)  
+
+Where:
+ * **id**: Unique key for the document. This is required and not so much changeable. the default key 
+   looks is `module__model__pk`
+ * **model**: What model type is this. The default is this `module_model`
+ * **site_id**: It can be argued that this isn't a good idea to include, but it doesn't hurt
+   a single site, and is helpful for multi-site apps
+ * **url**: The url for the instance. uses the get_absolute_url of the model if not specified
+ * **text**: Do not name any other field text. This is the destination for all the copy fields
+ 
+
+Fields
+======
+* DateField
+* DateTimeField
+* CharField
+* TextField
+* IntegerField
+* BooleanField
+* UrlField
+* PrimaryKeyField
+* SiteField
+* ModelField
+* FloatField
+* DoubleField
+* LongField
+
+Field Options
+-------------
+Each field takes a number of options. They determine how Solr should react to each. 
+
+* **copy** : Boolean
+ 
+  * If true the value will be copied into the text field of the document
+
+* **dynamic**: Boolean
+
+  * If field is created on the fly lets us tell Solr where it needs to end up. 
+    by default dynamic fields are copied into the text field
+
+* **indexed**: Boolean
+
+  * If (and only if) a field is indexed, then it is searchable, sortable, and facetable.
+
+* **stored**: Boolean
+
+  * True if the value of the field should be retrievable during a search
+
+* **dest**: String
+
+  * Copy fields need a destination. By default this is the `text` field. Unless you
+    Are doing something crazy this default will work
+
+* **multi_valued**: Boolean
+
+  * True if this field may contain multiple values per document, i.e. if it can appear multiple times in a document
+
+* **omitNorms**: Boolean
+
+  * Set to true to omit the norms associated with this field (this disables length normalization and index-time 
+    boosting for the field, and saves some memory). Only full-text fields or fields that need an index-time boost need norms.
+
+* **required**: Boolean
+
+  * Used by Solr. If a field is required solr won't accept it without it.
+
+
+Document Attributes
+===================
+
+`Media`
+-------
+Like Django forms the search document has a media class. Declare your template here::
+
+    class Media:
+        template = 'coltrane/entry_document.html'
+
+
+Document Methods
+================
+
+* `__init__`
+  
+  * If a document gets a model instance it will run the transform method and create a 
+    document from the model. If it gets a dictionary it will assume that it's from the 
+    search results and create a document running the clean method.
+
+* `transform`
+
+  * Takes an model instance and transforms it into a Search Document.
+
+* `clean`
+
+  * Takes the data dictionary and creates python values from it.
+  
+* `add`
+
+  * Turns the document into XML to be added/updated in Solr
+  
+* `delete`
+
+  * Turns the document into XML to be deleted in Solr. Returns only the the id field
+  
+* `to_xml`
+
+  * Does the transformation to XML.
+  
+* `render_html`
+
+  * Calls `render_to_string` and uses the template to create an html version of the document
+  
+* `transform_*`
+
+  * Transforms a model instance field into a SearchDocument field. The transform function is given an instance of the model 
+    so you can retrieve model attributes from it. To take author as an example the value for that field will be the 
+    full name of the author. Where the title doesn't need a transform function because it's already an attribute of the instance::
+
+        class EntryDocument(solango.SearchDocument):
+            author = solango.fields.CharField()
+            ...
+            
+            def transform_author(self, instance):
+                return instance.author.get_full_name()
+
+* `clean_*`
+
+  * If you want to change the value of a field when the document is returned in a `SearchResults` you can use this method.
+    It does not pass a model instance in, you can just modify the field value.

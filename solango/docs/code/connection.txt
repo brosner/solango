@@ -1,0 +1,87 @@
+.. _code-connection:
+
+==========
+Connection
+==========
+This class is the entry point for all search-bound actions, including  adding (indexing), deleting, and selecting (searching).  
+It is a singleton, and should always be accessed via `solango.connection`.
+
+Use
+===
+Connection is the interface between Django and Solr. It handles adding documents, deleting documents
+and returning search results. Here's an example of how to use it from the command line::
+
+    >>>from solango import connection
+    
+    #Select can take kwargs
+    >>>connection.select(q='django')
+    <solango.solr.results.SelectResults instance at 0x884b4ec>
+
+    #Or args
+    >>> connection.select({'q':'django'})
+    <solango.solr.results.SelectResults instance at 0x884b4ec>
+    
+    #Or a Query Instance
+    >>> from solango.solr.query import Query
+    >>> query = Query(q='django')
+    <solango.solr.results.SelectResults instance at 0x8cadfec>
+    
+    #From our example it also handles add and delete
+    >>> from coltrane.models import Entry
+    >>> entry = Entry.objects.all()[0]
+    
+    # Helper function to get a document from an instance
+    >>> from solango import get_document
+    >>> document = get_document(entry)
+    >>> document
+    <coltrane.search.EntryDocument object at 0x884268c>
+
+    # Add the document
+    >>> connection.add(document)
+    
+    # Delete the document
+    >>> connection.delete(document)
+    
+    
+
+Methods
+=======
+
+`is_available`
+--------------
+Returns True if the search system appears to be available and in good
+health, False otherwise. A ping is periodically sent to the search
+server to query its availability.
+
+`add`
+-----
+Adds the specified list of documents to the search index. Returns a two-element List of UpdateResults;
+the first element corresponds to the add operation, the second to the subsequent commit operation.
+
+`delete`
+--------
+Deletes the specified list of objects from the search index.  Returns a two-element List of 
+UpdateResults; the first element corresponds to the delete operation, the second to the 
+subsequent commit operation.
+
+`commit`
+--------
+Commits any pending changes to the search index.  Returns an UpdateResults instance.
+
+`optimize`
+----------
+Optimizes the search index.  Returns an UpdateResults instance.
+
+`issue_request`
+---------------
+Submits the specified Unicode content to the specified URL.  Returns the raw response content as
+a string, or None if an error occurs.
+
+`update`
+--------
+Submits the specified Unicode content to Solr's update interface (POST).
+
+`select`
+--------
+Submits the specified query to Solr's select interface (GET). It takes either a Query instance,
+a dictionary of arguments or kwargs

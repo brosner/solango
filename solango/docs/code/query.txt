@@ -1,0 +1,64 @@
+.. _code-query:
+
+=====
+Query
+=====
+
+Query is a helper function that is used to create Solr query string. It's 
+basically just a dict, but we make it aware of how it should handle certain
+keys.
+
+A query has 3 major parts. The Facet parameters, Highlighting parameter and query
+parameters themselves. The first thing Query does is add the default Facet and
+Highlighting params. Then it parses the arguments in a clean function and creates
+a dictionary. Simple example::
+
+    >>> from solango.solr.query import Query
+    >>> q = Query(q='django', model='coltrane_entry`)
+    {'facet.field': u'model',
+     'fl': [],
+     'fq': [],
+     'hl.fl': u'text',
+     'q': ['django', 'model:coltrane_entry']],
+     'rows': u'10',
+     'sort': [],
+     'start': u'0'}
+    >>> q.url
+    'rows=10&facet.field=model&facet.field=author&q=django+AND+model%3Acoltrane_entry
+    &start=0&hl.fl=text&hl.fragsize=200&facet=true&hl=true'
+    
+If you notice q is a list. It assumes that anything that isn't a default query
+param is a search params. So in the url we join all the search parameters by ANDing
+them together.
+
+Facet params start with `facet` and the full list of options
+can be found on the `Solr Simple Facet Parameters <http://wiki.apache.org/solr/SimpleFacetParameters>`_.
+page
+
+As an example we want to set a new `facet.offset` of one we pass that into the
+query or set the attribute.::
+
+    # Pass it into the Query
+    >>> q = Query({'facet.offset':1} ,q='django')
+    >>> q
+    {'facet.field': u'author',
+     'facet.field': u'model',
+     'facet.offset': u'1',
+     ...}
+
+    # Set the attribute
+    >>> q = Query(q='django')
+    >>> q.facet.offset = 1
+    >>> q
+    {'facet.field': u'author',
+     'facet.field': u'model',
+     'facet.offset': u'1',
+     ...}
+     
+This is done by using a util data structure we have affectionately named `CleverDict`.
+
+Highlighting params work the same way and  the full list of options
+can be found on the `Solr Highlighting Parameters <http://wiki.apache.org/solr/HighlightingParameters>`_.
+page
+
+Not every option may be supported. 

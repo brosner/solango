@@ -1,0 +1,17 @@
+.. _code-index:
+
+====
+Code
+====
+
+.. toctree::
+    :maxdepth: 2
+    
+    search_document
+    search_results
+    query
+    facet
+    highlighting
+    
+    connection
+    settings

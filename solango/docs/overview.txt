@@ -1,0 +1,45 @@
+.. _overview:
+
+========
+Overview
+========
+
+How it got Started
+===================
+This project has been in the works for awhile now. It started out with the original code written 
+by Jay Dolan for a top 20 newspaper site. Readers where complaining that they were never able to find 
+relevant content and they weren't given the tools to narrow down their search. With some of our 
+past experiences with Solr it seemed like the obvious choice for this type of enterprise search concept.
+
+
+What Django Solr gives you
+==========================
+Enterprise ready search that is easy to integrate, but also provides hooks for customization. Solr indexes 
+are built using documents, in order to give the developer the maximum amount of flexibility we abstracted 
+that concept into a SearchDocument. This allows us to do some very cool things, i.e. generate config files, 
+facet and highlight to name a few. 
+
+pySolr
+======
+There is currently an Open Source project out there called `pySolr <http://code.google.com/p/pysolr/>`_. 
+It's a great lightweight binding for Python and Solr, but doesn't handle Solr niceties like faceting and
+highlighting. If you think that this project is too heavy for your needs I would recommend checking it out.
+
+
+Refactor
+========
+Originally it took custom code in the transform class in order to add a new model. This was the major point
+of refactor, and where the SearchDocument document came about. I fully admit that parts of the code is very 
+ugly, but without some feedback it's hard to improve.
+
+Reuse
+=====
+You will notice if you poke around the code that we borrow from Django all over the place. Specifically, 
+the SearchDocument is a combination of The admin and forms code. We tried to follow pep-8 with respect to
+consistency.
+
+
+Documentation
+=============
+I tried my best to document the hell out of this thing. It's all here, please let us know if something
+isn't right. 

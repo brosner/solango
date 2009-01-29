@@ -1,0 +1,11 @@
+{% extends 'solango/base.html' %}
+
+{% block title %} Search Error {%endblock%}
+{% block content %}
+	<p>
+	{% if error_msg %}
+		{{error_msg}}
+	{%else%}
+	<p>Search is currently unavailable</p>
+	{% endif %}
+{% endblock %}

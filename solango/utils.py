@@ -144,8 +144,9 @@ def reindex():
     import solango
     from solango.solr import get_model_from_key
     
-    for model_key, document in solango.registry.items():
+    for model_key, index in solango.registry.items():
         model = get_model_from_key(model_key)
-        for instance in model.objects.all():
-            doc = document(instance)
+        for instance in index.queryset():
+            doc = index.document(instance)
             solango.connection.add(doc)
+    

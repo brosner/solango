@@ -103,8 +103,11 @@ like this::
         
         def transform_content(self, instance):
             return instance.body
+    
+    class EntryIndex(solango.SearchIndex):
+        document = EntryDocument
 
-    solango.register(Entry, EntryDocument)
+    solango.register(Entry, EntryIndex)
 
 Notice we didn't add an id, url or model. This is taken care of by the base Search Document.
 That seems like a lot of code, but I hope I'm going to show you why we need it. Lets take a step back.
@@ -119,7 +122,7 @@ The transform function is given an instance of the model so you can retrieve mod
 To take author as an example the value for that field will be the full name of the author. Where the title doesn't need
 a transform function because it's already an attribute of the instance.
 
-`solango.register` takes an instance of the Model and associates it with the document.  
+`solango.register` takes an instance of the Model and associates it with the index.  
 
 Solr Setup
 ==========

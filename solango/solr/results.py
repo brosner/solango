@@ -163,7 +163,7 @@ class SelectResults(Results):
         
         for d in xmlutils.get_child_nodes(result, "doc"):
             data_dict = xmlutils.get_dictionary(d)
-            document = registry[data_dict['model']](data_dict)
+            document = registry[data_dict['model']].document(data_dict)
             self.documents.append(document)
         
     def _parse_facets(self):

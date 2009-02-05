@@ -12,6 +12,7 @@ from solango.solr import fields
 from solango.solr import get_model_key
 from solango.solr.connection import SearchWrapper
 from solango.solr.documents import SearchDocument
+from solango.solr.indexes import SearchIndex
 
 class AlreadyRegistered(Exception):
     pass
@@ -33,7 +34,7 @@ def post_save(sender, instance, created, *args, **kwargs):
     if key not in registry.keys():
         return None
     
-    document = registry[key](instance)
+    document = registry[key].document(instance)
     #Note adding and updating a document in solr uses the same command
     connection.add([document])
 
@@ -48,21 +49,25 @@ def post_delete( sender, instance, *args, **kwargs):
     if key not in registry.keys():
         return None
     
-    document = registry[key](instance)
+    document = registry[key].document(instance)
     connection.delete([document,]) 
 
-def register(model_or_iterable, search_document=None):
+def register(model_or_iterable, index_class=None):
     if isinstance(model_or_iterable, ModelBase):
         model_or_iterable = [model_or_iterable]
     for model in model_or_iterable:
         #Register the model
         if model in registry:
             raise AlreadyRegistered('%s has already been registered by search' % model)
-        if not search_document:
-            #Default Search Document if no document is specified.
-            search_document = SearchDocument
+        if index_class is None:
+            # default index when none is provided
+            index = SearchIndex(model)
+        elif issubclass(index_class, SearchDocument):
+            index = SearchIndex(model, index_class)
+        else:
+            index = index_class(model)
         key = get_model_key(model)
-        registry[key] = search_document
+        registry[key] = index
         #Hook Up The Signals
         signals.post_save.connect(post_save, model)
         signals.post_delete.connect(post_delete, model)
@@ -83,6 +88,6 @@ def get_document(instance):
     key = get_model_key(instance)
     
     if key not in registry.keys():
-        raise NotRegistered('Instance not reqistered with Solango')
+        raise NotRegistered('Instance not registered with Solango')
     
-    return registry[key](instance)
+    return registry[key].document(instance)

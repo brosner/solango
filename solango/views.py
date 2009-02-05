@@ -39,5 +39,5 @@ def select(request, q=''):
         
     return render_to_response("solango/search.html", {'paginator': paginator ,
                                                       'facets' : facets,
-                                                      'q' : q,
+                                                      'q' : params['q'],
                                                       'sort_links' : sort_links } , RequestContext(request))
